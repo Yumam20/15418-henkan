@@ -23,7 +23,7 @@ TARGETBIN := henkan-$(CONFIGURATION)
 all: $(TARGETBIN)
 
 $(TARGETBIN): $(SOURCES) #$(HEADERS)
-	$(CXX) -o $@ $(CFLAGS) $(SOURCES) 
+	$(CXX) -o $@ $(CFLAGS) $(SOURCES)
 
 format:
 	clang-format -i src/*.cpp src/*.h

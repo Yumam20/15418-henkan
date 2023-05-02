@@ -30,7 +30,6 @@ void read_hira(){
         getline(str,word,',');//int
         getline(str,romaji,',');//romaji
         //cout << "word " << romaji << endl;
-        getline(str,word,',');
         getline(str,hiragana,',');//romaji
         //cout << "word " << hiragana << endl;
         romajiHiraganaMap[romaji] = hiragana;
@@ -47,6 +46,8 @@ void read_hira(){
 bool inDict(string queryString){
     return romajiHiraganaMap.find(queryString) != romajiHiraganaMap.end();
 }
+
+
 
 string naiveHenkan(string inputString){
     //cout << inputString << std::endl;
@@ -86,17 +87,25 @@ string testHenkan(string inputString){
     int frontBound, endBound;
     frontBound = 0; endBound = inputString.size();
     string returnMe = "";
+    int frontInsertPosition = 0; 
+    int backInsertPosition = 0;
 
     while(frontBound < endBound){
-        for(int i = 3; i > 0; i++){ //3 is maxsize romaji in dict
-
+        for(int i = 3; i > 0; i--){ //3 is maxsize romaji in dict
+            //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
             if(inDict(inputString.substr(frontBound,i))){
-                returnMe.insert(0,romajiHiraganaMap[inputString.substr(frontBound,i)]);
+                //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
+                returnMe.insert(frontInsertPosition,romajiHiraganaMap[inputString.substr(frontBound,i)]);
+                frontInsertPosition += romajiHiraganaMap[inputString.substr(frontBound,i)].size();
+                backInsertPosition = max(backInsertPosition, frontInsertPosition);
                 frontBound += i;
             }
-
+            //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
             if(inDict(inputString.substr(endBound-i,i))){
+                //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl;
                 returnMe += romajiHiraganaMap[inputString.substr(frontBound,i)];
+                backInsertPosition -= romajiHiraganaMap[inputString.substr(frontBound,i)].size();
+                backInsertPosition = min(backInsertPosition, frontInsertPosition);
                 endBound -= i;
             }
         } //might want to break up for loops to ensure that 1 is not stall waiting for other if already found
@@ -131,12 +140,18 @@ int main() {
     //insert timing code
     Timer totalSimulationTimer;
     string naiveOutput = naiveHenkan(inputString);
+    double naiveTime = totalSimulationTimer.elapsed();
+    string testOutput = testHenkan(inputString);
     double totalSimulationTime = totalSimulationTimer.elapsed();
     printf("total simulation time: %.6fs\n", totalSimulationTime);
+    printf("naiveHenkan simulation time: %.6fs\n", naiveTime);
+    printf("testHenkan simulation time: %.6fs\n", totalSimulationTime-naiveTime);
+
     //insert timing code
     //string parallelOutput = parallelHenkan(inputString);
 
-    string testOutput = testHenkan(inputString);
+    
+
     //insert timing code
     cout << "naiveHenkan: " << naiveOutput << std::endl;
     //cout << "parallelHenkan: " << parallelOutput << std::endl;
