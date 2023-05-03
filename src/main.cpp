@@ -11,6 +11,7 @@
 using namespace std;
 
 std::map<std::string, std::string> romajiHiraganaMap;
+enum dictStatus {FOUND_DICT, FOUND_EXCEPTION, NOT_FOUND};
 void read_hira(){
     string line;
     string word;
@@ -43,9 +44,47 @@ void read_hira(){
     }
     cout << endl;
 }
-bool inDict(string queryString){
-    return romajiHiraganaMap.find(queryString) != romajiHiraganaMap.end();
+
+string romajiExceptions(string queryString){
+    if (queryString == " "){
+        return " ";
+    }
+    if(queryString.size() == 2 && queryString[0] == queryString[1]){
+        return "っ";
+    }
+    if(queryString == "-"){
+        return "ー";
+    }
+    return ""; //return "" if its not an exception
+
 }
+
+dictStatus inDict(string queryString){
+    if((romajiHiraganaMap.find(queryString) != romajiHiraganaMap.end())){
+        return FOUND_DICT;
+    }
+    else if (romajiExceptions(queryString) != ""){
+        return FOUND_EXCEPTION;
+    }
+    return NOT_FOUND;
+}
+
+string retrieveDict(string queryString){
+    cout << "found " << queryString << "\n" << std::endl;
+    dictStatus qs = inDict(queryString);
+    if(qs == FOUND_DICT){
+        return romajiHiraganaMap[queryString];
+    }
+    else if(qs == FOUND_EXCEPTION){
+        return romajiExceptions(queryString);
+    }
+    //should not hit this case
+    return "bruh";
+
+
+}
+
+
 
 
 
@@ -54,35 +93,26 @@ string naiveHenkan(string inputString){
     if(inputString.size() == 0){
         return "";
     }
-    if(inputString[0] == ' '){
-        return " " + naiveHenkan(inputString.substr(1,inputString.size()-1));
-    }
-    //need to consider cases with nobashi-bou and other typing standards resulting in smaller characters
-    if(inputString[0] == inputString[1]){
-        //first two letters are the same -> insert little tsu
-        return "っ" + naiveHenkan(inputString.substr(1,inputString.size()-1));
-    }
     //cout << "substring " << inputString << " " << endl;
     //
     for(size_t i = inputString.size() ; i >0 ; i--){
         //cout << "trying " << inputString.substr(0,i) << std::endl;
 
 
-        if(inDict(inputString.substr(0,i))) {
+        if(inDict(inputString.substr(0,i)) != NOT_FOUND) {
             // mapping  found
             //cout<< "found " << romajiHiraganaMap[inputString.substr(0,i)] << " " << std::endl;
             string recursiveCall = naiveHenkan(inputString.substr(i,inputString.size()-i));
             //cout << "searching" << inputString.substr(i,inputString.size()-i) << " " << std::endl;
-            if(true){
-                return romajiHiraganaMap[inputString.substr(0,i)] + recursiveCall;
-            }
+            return retrieveDict(inputString.substr(0,i)) + recursiveCall;
 
         }
     }
     return inputString;
 }
 
-string testHenkan(string inputString){
+string edgeHenkan(string inputString){
+    return "";
     //int middle = inputString.size() / 2;
     int frontBound, endBound;
     frontBound = 0; endBound = inputString.size();
@@ -128,34 +158,31 @@ string parallelHenkan(string inputString){
     return "\n";
     //pragma omp omp
 }*/
-
+void dut(string inputString){
+    Timer totalSimulationTimer;
+    string naiveOutput = naiveHenkan(inputString);
+    double naiveTime = totalSimulationTimer.elapsed();
+    string edgeOutput = edgeHenkan(inputString);
+    double totalSimulationTime = totalSimulationTimer.elapsed();
+    printf("total simulation time: %.6fs\n", totalSimulationTime);
+    printf("naiveHenkan simulation time: %.6fs\n", naiveTime);
+    printf("edgeHenkan simulation time: %.6fs\n", totalSimulationTime-naiveTime);
+    printf("Speedup: %f\n", (naiveTime/(totalSimulationTime-naiveTime)));
+    //insert timing code
+    cout << "naiveHenkan: " << naiveOutput << std::endl;
+    //cout << "parallelHenkan: " << parallelOutput << std::endl;
+    cout << "edgeHenkan: " << edgeOutput << std::endl;
+}
 
 int main() {
     string inputString;
-    string outputString;
     cout << "Please Enter the Input" << std::endl;
     getline(cin, inputString);
     boost::algorithm::to_lower(inputString);
     read_hira();
-    //insert timing code
-    Timer totalSimulationTimer;
-    string naiveOutput = naiveHenkan(inputString);
-    double naiveTime = totalSimulationTimer.elapsed();
-    string testOutput = testHenkan(inputString);
-    double totalSimulationTime = totalSimulationTimer.elapsed();
-    printf("total simulation time: %.6fs\n", totalSimulationTime);
-    printf("naiveHenkan simulation time: %.6fs\n", naiveTime);
-    printf("testHenkan simulation time: %.6fs\n", totalSimulationTime-naiveTime);
 
-    //insert timing code
-    //string parallelOutput = parallelHenkan(inputString);
+    dut(inputString);
 
-    
-
-    //insert timing code
-    cout << "naiveHenkan: " << naiveOutput << std::endl;
-    //cout << "parallelHenkan: " << parallelOutput << std::endl;
-    cout << "testHenkan: " << testOutput << std::endl;
     return 0;
 }
 
