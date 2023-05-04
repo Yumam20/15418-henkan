@@ -11,6 +11,8 @@
 
 using namespace std;
 
+int GRANULARITY_BOUND = 4;
+
 std::map<std::string, std::string> romajiHiraganaMap;
 enum dictStatus {FOUND_DICT, FOUND_EXCEPTION, NOT_FOUND};
 string edgeHenkan(string inputString);
@@ -143,7 +145,8 @@ string edgeHenkan(string inputString){
     frontBound = 0; endBound = inputString.length(); //pointers for input string
     string returnMe = "";
     frontOffset = 0; backOffset = 0; //pointers for output string
-    if(inputString.size() < 5){
+    if(inputString.size() < GRANULARITY_BOUND){
+        //granularity bound
         return naiveHenkan(inputString);
     }
     while(frontBound < endBound){
@@ -170,7 +173,6 @@ string edgeHenkan(string inputString){
                 break;
             }
             //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
-            //returnMe.insert(1,"ロル");
             if(frontBound >= endBound){
                 break;
             }
