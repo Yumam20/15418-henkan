@@ -49,12 +49,16 @@ string romajiExceptions(string queryString){
     if (queryString == " "){
         return " ";
     }
-    if(queryString.size() == 2 && queryString[0] == queryString[1]){
-        return "っ";
+    else if(queryString.size() == 3 && queryString[0] == queryString[1] && romajiHiraganaMap.find(queryString.substr(1,2)) != romajiHiraganaMap.end()){
+        return "っ" + romajiHiraganaMap[queryString.substr(1,2)];
     }
-    if(queryString == "-"){
+    else if(queryString == "-"){
         return "ー";
     }
+    else if(queryString.size() == 1 && ((queryString[0] >= 'a' && queryString[0] <= 'z') || (queryString[0] >= 'A' && queryString[0] <= 'Z'))){
+        return queryString; //not in alphabet (i.e. numeric, special characters like $ @ %)
+    }
+    
     return ""; //return "" if its not an exception
 
 }
@@ -70,7 +74,6 @@ dictStatus inDict(string queryString){
 }
 
 string retrieveDict(string queryString){
-    cout << "found " << queryString << "\n" << std::endl;
     dictStatus qs = inDict(queryString);
     if(qs == FOUND_DICT){
         return romajiHiraganaMap[queryString];
@@ -112,7 +115,6 @@ string naiveHenkan(string inputString){
 }
 
 string edgeHenkan(string inputString){
-    return "";
     //int middle = inputString.size() / 2;
     int frontBound, endBound;
     frontBound = 0; endBound = inputString.size();
@@ -122,17 +124,17 @@ string edgeHenkan(string inputString){
 
     while(frontBound < endBound){
         for(int i = 3; i > 0; i--){ //3 is maxsize romaji in dict
-            //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
+            cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
             if(inDict(inputString.substr(frontBound,i))){
-                //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
+                cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
                 returnMe.insert(frontInsertPosition,romajiHiraganaMap[inputString.substr(frontBound,i)]);
                 frontInsertPosition += romajiHiraganaMap[inputString.substr(frontBound,i)].size();
                 backInsertPosition = max(backInsertPosition, frontInsertPosition);
                 frontBound += i;
             }
-            //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
+            cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
             if(inDict(inputString.substr(endBound-i,i))){
-                //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl;
+                cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl;
                 returnMe += romajiHiraganaMap[inputString.substr(frontBound,i)];
                 backInsertPosition -= romajiHiraganaMap[inputString.substr(frontBound,i)].size();
                 backInsertPosition = min(backInsertPosition, frontInsertPosition);
