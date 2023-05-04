@@ -313,8 +313,11 @@ string edgeHenkanParallel(string inputString){
                     j--;
                 }
             } else {
-                for(int i = 1; i <= min(4,(int)inputString.length()/2); i++){ //4 is maxsize romaji in dict
+                for(int i = min(4,(int)inputString.length()/2); i > 0; i--){ //4 is maxsize romaji in dict
             //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
+                    if(frontBound >= endBound){
+                        break;
+                    }
                     if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND) {        
                         //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
                         //cout << "inserting" << retrieveDict(inputString.substr(frontBound,i)) <<"\n" << std::endl;
@@ -324,7 +327,7 @@ string edgeHenkanParallel(string inputString){
                         frontBound += i;
                         // cout << "found front " << insertMe << endl;
                         break;
-                    } else if (i + 1 > min(4,(int)inputString.length()/2)) {
+                    } else if (i == 1) {
                         // in case there are no matches possible, move up front in order to continue execution
                         returnMe.insert(frontOffset,inputString.substr(frontBound,i));
                         frontOffset += 1;
@@ -333,9 +336,7 @@ string edgeHenkanParallel(string inputString){
                 //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
 
                 //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
-                    if(frontBound >= endBound){
-                        break;
-                    }
+
                 } //might want to break up for loops to ensure that 1 is not stall waiting for other if already found
 
             }
@@ -349,7 +350,7 @@ string edgeHenkanParallel(string inputString){
     return returnMe;
 
 }
-void dut(string inputString){
+void dut(string inputString, bool verbose){
     string naiveInput = inputString;
     naiveInput.erase(remove(naiveInput.begin(), naiveInput.end(), ' '), naiveInput.end());
     Timer naiveSimulationTimer;
@@ -358,6 +359,12 @@ void dut(string inputString){
     Timer edgeSimulationTimer;
     string edgeOutput = parallelEdgeHenkan(inputString);
     double edgeSimulationTime = edgeSimulationTimer.elapsed();
+
+
+    if (verbose == true) {
+        cout << "naiveHenkan: " << naiveOutput << std::endl;
+        cout << "edgeHenkan: " << edgeOutput << std::endl;
+    }
     printf("naiveHenkan simulation time: %.6fs\n", naiveTime);
     printf("edgeHenkan simulation time: %.6fs\n", edgeSimulationTime);
     printf("Speedup: %f\n", (naiveTime/(edgeSimulationTime)));
@@ -368,18 +375,20 @@ void dut(string inputString){
         cout << "\033[37;32mOUTPUTS MATCH!" << std::endl;
     }else{
         cout << "\033[37;31mOUTPUTS DO NOT MATCH :(" << std::endl;
-        cout << "naiveHenkan: " << naiveOutput << std::endl;
-        cout << "edgeHenkan: " << edgeOutput << std::endl;
     }
 }
 
 int main(int argc, const char **argv) {
     string inputString;
+    bool verbose = false;
     for (int i = 1; i < argc; i++){
         if (i < argc - 1) {
             if (strcmp(argv[i], "-in") == 0) {
                 inputString = read_input_file((string)argv[i+1]);
             }
+        }
+        if (strcmp(argv[i], "-v") == 0) {
+            verbose = true;
         }
     } 
     if (inputString == "") {
@@ -388,7 +397,7 @@ int main(int argc, const char **argv) {
     }
     boost::algorithm::to_lower(inputString);
     read_hira();
-    dut(inputString);
+    dut(inputString, verbose);
 
     return 0;
 }
