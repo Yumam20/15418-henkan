@@ -8,6 +8,9 @@
 #include <boost/algorithm/string/join.hpp>
 #include "timing.h"
 #include <omp.h>
+#include <algorithm>
+#include <string>
+
 
 using namespace std;
 
@@ -117,7 +120,7 @@ string naiveHenkan(string inputString){
     }
     return inputString;
 }
-
+int LOAD_BALANCE = 100;
 string parallelEdgeHenkan(string inputString) {
     vector<string> henkan_list;
     string final_henkan;
@@ -126,21 +129,35 @@ string parallelEdgeHenkan(string inputString) {
     // Traverse through all words
     // while loop till we get
     // strings to store in string word
+    string temp = "";
     while (ss >> word)
     {
-        henkan_list.emplace_back(word);
-    }
-    vector<string> henkan_out = vector<string>(henkan_list.size());
-    #pragma omp parallel
-    {
-        #pragma omp for
-        for (int i = 0; i < henkan_list.size(); i++) {
-            int thread_num = omp_get_thread_num();
-            std::cout << thread_num << std::endl;
-            henkan_out[i] = edgeHenkan(henkan_list[i]);
+        temp += word + " ";
+        if (temp.size() >= LOAD_BALANCE) {
+            henkan_list.emplace_back(temp);
+            temp = "";
         }
     }
-    final_henkan = boost::algorithm::join(henkan_out, " ");
+    if (temp != "") {
+        henkan_list.emplace_back(temp);
+    }
+    vector<string> henkan_out = vector<string>(henkan_list.size());
+    if (henkan_list.size() >= 2) {
+         #pragma omp parallel
+        {
+            #pragma omp for
+            for (int i = 0; i < henkan_list.size(); i++) {
+                int thread_num = omp_get_thread_num();
+                std::cout << thread_num << henkan_list[i] << std::endl;
+                henkan_out[i] = edgeHenkan(henkan_list[i]);
+            }
+        }
+        final_henkan = boost::algorithm::join(henkan_out, "");
+    } else {
+        final_henkan =  edgeHenkan(henkan_list[0]);
+    }
+
+   
     return final_henkan;
 }
 
@@ -154,7 +171,7 @@ string edgeHenkan(string inputString){
         return naiveHenkan(inputString);
     }
     while(frontBound < endBound){
-        for(int i = min(3,(int)inputString.length()/2); i > 0; i--){ //3 is maxsize romaji in dict
+        for(int i = 0; i <= min(3,(int)inputString.length()/2); i++){ //3 is maxsize romaji in dict
             //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
             if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND) {        
                 //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
@@ -211,12 +228,13 @@ void dut(string inputString){
     double naiveTime = naiveSimulationTimer.elapsed();
     Timer edgeSimulationTimer;
     string edgeOutput = parallelEdgeHenkan(inputString);
-    double totalSimulationTime = edgeSimulationTimer.elapsed();
-    printf("total simulation time: %.6fs\n", totalSimulationTime);
+    double edgeSimulationTime = edgeSimulationTimer.elapsed();
     printf("naiveHenkan simulation time: %.6fs\n", naiveTime);
-    printf("edgeHenkan simulation time: %.6fs\n", totalSimulationTime-naiveTime);
-    printf("Speedup: %f\n", (naiveTime/(totalSimulationTime-naiveTime)));
+    printf("edgeHenkan simulation time: %.6fs\n", edgeSimulationTime);
+    printf("Speedup: %f\n", (naiveTime/(edgeSimulationTime)));
     //insert timing code
+    naiveOutput.erase(remove(naiveOutput.begin(), naiveOutput.end(), ' '), naiveOutput.end());
+    edgeOutput.erase(remove(edgeOutput.begin(), edgeOutput.end(), ' '), edgeOutput.end());
     cout << "naiveHenkan: " << naiveOutput << std::endl;
     //cout << "parallelHenkan: " << parallelOutput << std::endl;
     cout << "edgeHenkan: " << edgeOutput << std::endl;
