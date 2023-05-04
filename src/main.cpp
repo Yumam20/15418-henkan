@@ -120,7 +120,6 @@ string naiveHenkan(string inputString){
 
 string parallelEdgeHenkan(string inputString) {
     vector<string> henkan_list;
-    vector<string> henkan_out;
     string final_henkan;
     istringstream ss(inputString);
     string word; // for storing each word
@@ -131,12 +130,17 @@ string parallelEdgeHenkan(string inputString) {
     {
         henkan_list.emplace_back(word);
     }
-    for (int i = 0; i < henkan_list.size(); i++) {
-        std::cout << henkan_list[i] << std::endl;
-        henkan_out.emplace_back(edgeHenkan(henkan_list[i]));
-        //edgeHenkan(henkan_list[i])
+    vector<string> henkan_out = vector<string>(henkan_list.size());
+    #pragma omp parallel
+    {
+        #pragma omp for
+        for (int i = 0; i < henkan_list.size(); i++) {
+            int thread_num = omp_get_thread_num();
+            std::cout << thread_num << std::endl;
+            henkan_out[i] = edgeHenkan(henkan_list[i]);
+        }
     }
-    final_henkan = boost::algorithm::join(henkan_out, "");
+    final_henkan = boost::algorithm::join(henkan_out, " ");
     return final_henkan;
 }
 
@@ -202,11 +206,12 @@ string parallelHenkan(string inputString){
     //pragma omp omp
 }*/
 void dut(string inputString){
-    Timer totalSimulationTimer;
-    string naiveOutput = naiveHenkan(inputString);
-    double naiveTime = totalSimulationTimer.elapsed();
-    string edgeOutput = edgeHenkan(inputString);
-    double totalSimulationTime = totalSimulationTimer.elapsed();
+    Timer naiveSimulationTimer;
+    string naiveOutput = edgeHenkan(inputString);
+    double naiveTime = naiveSimulationTimer.elapsed();
+    Timer edgeSimulationTimer;
+    string edgeOutput = parallelEdgeHenkan(inputString);
+    double totalSimulationTime = edgeSimulationTimer.elapsed();
     printf("total simulation time: %.6fs\n", totalSimulationTime);
     printf("naiveHenkan simulation time: %.6fs\n", naiveTime);
     printf("edgeHenkan simulation time: %.6fs\n", totalSimulationTime-naiveTime);
