@@ -20,7 +20,25 @@ std::map<std::string, std::string> romajiHiraganaMap;
 enum dictStatus {FOUND_DICT, FOUND_EXCEPTION, NOT_FOUND};
 string edgeHenkan(string inputString);
 
-void read_hira(){
+
+// helper function to read input file and return as string
+string read_input_file(string inputSrc) {
+    ifstream file;
+    file.open(inputSrc); //open the input file
+    if (!file.is_open())
+    {
+        cerr << "path is wrong for input file" << endl;
+        return "";
+    }
+    stringstream strStream;
+    strStream << file.rdbuf(); //read the file
+    string file_string = strStream.str();
+
+   return file_string;
+}
+
+
+void read_hira() {
     string line;
     string word;
     string romaji;
@@ -28,7 +46,7 @@ void read_hira(){
     ifstream file;
     file.open("hiraganaMap.csv");
     //cout << "hello?" << endl;
-     if (!file.is_open())
+    if (!file.is_open())
     {
         cout << "path is wrong for map" << endl;
         return;
@@ -145,10 +163,10 @@ string parallelEdgeHenkan(string inputString) {
     if (henkan_list.size() >= 2) {
          #pragma omp parallel
         {
-            #pragma omp for
+            #pragma omp for schedule(static)
             for (int i = 0; i < henkan_list.size(); i++) {
                 int thread_num = omp_get_thread_num();
-                std::cout << thread_num << henkan_list[i] << std::endl;
+                // std::cout << thread_num << henkan_list[i] << std::endl;
                 henkan_out[i] = edgeHenkan(henkan_list[i]);
             }
         }
@@ -181,6 +199,10 @@ string edgeHenkan(string inputString){
                 frontOffset += insertMe.length();
                 frontBound += i;
                 break;
+            } else if (i + 1 > min(3,(int)inputString.length()/2)) {
+                returnMe.insert(frontOffset,inputString.substr(frontBound,i));
+                frontOffset += 1;
+                frontBound += 1;
             }
         for(int j = min(3,endBound-frontBound); j > 0 ; j--){
             if(inDict(inputString.substr(endBound-j,j)) != NOT_FOUND) {
@@ -245,10 +267,19 @@ void dut(string inputString){
     }
 }
 
-int main() {
+int main(int argc, const char **argv) {
     string inputString;
-    cout << "Please Enter the Input" << std::endl;
-    getline(cin, inputString);
+    for (int i = 1; i < argc; i++){
+        if (i < argc - 1) {
+            if (strcmp(argv[i], "-in") == 0) {
+                inputString = read_input_file((string)argv[i+1]);
+            }
+        }
+    } 
+    if (inputString == "") {
+        cout << "Please Enter an input" << std::endl;
+        getline(cin, inputString);
+    }
     boost::algorithm::to_lower(inputString);
     read_hira();
     dut(inputString);
