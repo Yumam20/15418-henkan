@@ -118,7 +118,9 @@ string edgeHenkan(string inputString){
     frontBound = 0; endBound = inputString.length(); //pointers for input string
     string returnMe = "";
     frontOffset = 0; backOffset = 0; //pointers for output string
-
+    if(inputString.size() < 4){
+        return naiveHenkan(inputString);
+    }
     while(frontBound < endBound){
         for(int i = 3; i > 0; i--){ //3 is maxsize romaji in dict
             //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
