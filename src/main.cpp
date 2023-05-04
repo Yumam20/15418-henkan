@@ -150,7 +150,7 @@ string edgeHenkan(string inputString){
         return naiveHenkan(inputString);
     }
     while(frontBound < endBound){
-        for(int i = 3; i > 0; i--){ //3 is maxsize romaji in dict
+        for(int i = min(3,(int)inputString.length()/2); i > 0; i--){ //3 is maxsize romaji in dict
             //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
             if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND) {        
                 //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
@@ -161,21 +161,24 @@ string edgeHenkan(string inputString){
                 frontBound += i;
                 break;
             }
-            //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
-            if(inDict(inputString.substr(endBound-i,i)) != NOT_FOUND) {
+        for(int j = min(3,endBound-frontBound); j > 0 ; j--){
+            if(inDict(inputString.substr(endBound-j,j)) != NOT_FOUND) {
                 //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl; 
                 //cout << "inserting" << insertMe <<"\n" << std::endl;
                 //cout << "string: " <<returnMe << "int: " << (returnMe.length()-backOffset) << std::endl;
-                string insertMe = retrieveDict(inputString.substr(endBound-i,i));
+                string insertMe = retrieveDict(inputString.substr(endBound-j,j));
                 returnMe.insert(returnMe.length()-backOffset,insertMe);
                 backOffset += insertMe.length(); 
-                endBound -= i;
+                endBound -= j;
                 break;
             }
-            //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
-            if(frontBound >= endBound){
-                break;
-            }
+        }
+        //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
+
+        //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
+        if(frontBound >= endBound){
+            break;
+        }
         } //might want to break up for loops to ensure that 1 is not stall waiting for other if already found
 
     }
@@ -202,7 +205,7 @@ void dut(string inputString){
     Timer totalSimulationTimer;
     string naiveOutput = naiveHenkan(inputString);
     double naiveTime = totalSimulationTimer.elapsed();
-    string edgeOutput = parallelEdgeHenkan(inputString);
+    string edgeOutput = edgeHenkan(inputString);
     double totalSimulationTime = totalSimulationTimer.elapsed();
     printf("total simulation time: %.6fs\n", totalSimulationTime);
     printf("naiveHenkan simulation time: %.6fs\n", naiveTime);
@@ -212,6 +215,11 @@ void dut(string inputString){
     cout << "naiveHenkan: " << naiveOutput << std::endl;
     //cout << "parallelHenkan: " << parallelOutput << std::endl;
     cout << "edgeHenkan: " << edgeOutput << std::endl;
+    if(naiveOutput == edgeOutput){
+        cout << "\033[37;32mOUTPUTS MATCH!" << std::endl;
+    }else{
+        cout << "\033[37;31mOUTPUTS DO NOT MATCH :(" << std::endl;
+    }
 }
 
 int main() {
