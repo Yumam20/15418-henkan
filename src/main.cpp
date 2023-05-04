@@ -19,7 +19,8 @@ int GRANULARITY_BOUND = 4;
 std::map<std::string, std::string> romajiHiraganaMap;
 enum dictStatus {FOUND_DICT, FOUND_EXCEPTION, NOT_FOUND};
 string edgeHenkan(string inputString);
-
+string edgeHenkanParallel(string inputString);
+string edgeHenkanLeft(string inputString);
 
 // helper function to read input file and return as string
 string read_input_file(string inputSrc) {
@@ -75,6 +76,9 @@ string romajiExceptions(string queryString){
     if (queryString == " "){
         return " ";
     }
+    else if(queryString.size() == 4 && queryString[0] == queryString[1] && romajiHiraganaMap.find(queryString.substr(1,3)) != romajiHiraganaMap.end()){
+        return "っ" + romajiHiraganaMap[queryString.substr(1,3)];
+    }
     else if(queryString.size() == 3 && queryString[0] == queryString[1] && romajiHiraganaMap.find(queryString.substr(1,2)) != romajiHiraganaMap.end()){
         return "っ" + romajiHiraganaMap[queryString.substr(1,2)];
     }
@@ -112,10 +116,6 @@ string retrieveDict(string queryString){
 
 }
 
-
-
-
-
 string naiveHenkan(string inputString){
     //cout << inputString << std::endl;
     if(inputString.size() == 0){
@@ -138,7 +138,42 @@ string naiveHenkan(string inputString){
     }
     return inputString;
 }
+
 int LOAD_BALANCE = 100;
+
+string sequentialEdgeHenkan(string inputString) {
+    vector<string> henkan_list;
+    string final_henkan;
+    istringstream ss(inputString);
+    string word; // for storing each word
+    // Traverse through all words
+    // while loop till we get
+    // strings to store in string word
+    string temp = "";
+    while (ss >> word)
+    {
+        temp += word + " ";
+        if (temp.size() >= LOAD_BALANCE) {
+            henkan_list.emplace_back(temp);
+            temp = "";
+        }
+    }
+    if (temp != "") {
+        henkan_list.emplace_back(temp);
+    }
+    vector<string> henkan_out = vector<string>(henkan_list.size());
+    for (int i = 0; i < henkan_list.size(); i++) {
+        int thread_num = omp_get_thread_num();
+        // std::cout << thread_num << henkan_list[i] << std::endl;
+        henkan_out[i] = edgeHenkan(henkan_list[i]);
+    }
+
+    final_henkan = boost::algorithm::join(henkan_out, "");
+
+   
+    return final_henkan;
+}
+
 string parallelEdgeHenkan(string inputString) {
     vector<string> henkan_list;
     string final_henkan;
@@ -167,12 +202,12 @@ string parallelEdgeHenkan(string inputString) {
             for (int i = 0; i < henkan_list.size(); i++) {
                 int thread_num = omp_get_thread_num();
                 // std::cout << thread_num << henkan_list[i] << std::endl;
-                henkan_out[i] = edgeHenkan(henkan_list[i]);
+                henkan_out[i] = edgeHenkanParallel(henkan_list[i]);
             }
         }
         final_henkan = boost::algorithm::join(henkan_out, "");
     } else {
-        final_henkan =  edgeHenkan(henkan_list[0]);
+        final_henkan =  edgeHenkanParallel(henkan_list[0]);
     }
 
    
@@ -189,64 +224,136 @@ string edgeHenkan(string inputString){
         return naiveHenkan(inputString);
     }
     while(frontBound < endBound){
-        for(int i = 0; i <= min(3,(int)inputString.length()/2); i++){ //3 is maxsize romaji in dict
+        for (int w = 0; w < 2; w++) {
+            if (w == 0) {
+                int j = min(4,endBound-frontBound);
+                while (j > 0) {
+                    if(frontBound >= endBound){
+                        break;
+                    }
+                    if(inDict(inputString.substr(endBound-j,j)) != NOT_FOUND) {
+                        //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl; 
+                        //cout << "inserting" << insertMe <<"\n" << std::endl;
+                        //cout << "string: " <<returnMe << "int: " << (returnMe.length()-backOffset) << std::endl;
+                        string insertMe = retrieveDict(inputString.substr(endBound-j,j));
+                        returnMe.insert(returnMe.length()-backOffset,insertMe);
+                        backOffset += insertMe.length(); 
+                        endBound -= j;
+                        // cout << "found back " << insertMe << endl;
+                        break;
+                    }
+                    j--;
+                }
+            } else {
+                for(int i = 1; i <= min(4,(int)inputString.length()/2); i++){ //4 is maxsize romaji in dict
             //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
-            if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND) {        
-                //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
-                //cout << "inserting" << retrieveDict(inputString.substr(frontBound,i)) <<"\n" << std::endl;
-                string insertMe = retrieveDict(inputString.substr(frontBound,i));
-                returnMe.insert(frontOffset,insertMe);
-                frontOffset += insertMe.length();
-                frontBound += i;
-                break;
-            } else if (i + 1 > min(3,(int)inputString.length()/2)) {
-                returnMe.insert(frontOffset,inputString.substr(frontBound,i));
-                frontOffset += 1;
-                frontBound += 1;
-            }
-        for(int j = min(3,endBound-frontBound); j > 0 ; j--){
-            if(inDict(inputString.substr(endBound-j,j)) != NOT_FOUND) {
-                //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl; 
-                //cout << "inserting" << insertMe <<"\n" << std::endl;
-                //cout << "string: " <<returnMe << "int: " << (returnMe.length()-backOffset) << std::endl;
-                string insertMe = retrieveDict(inputString.substr(endBound-j,j));
-                returnMe.insert(returnMe.length()-backOffset,insertMe);
-                backOffset += insertMe.length(); 
-                endBound -= j;
-                break;
+                    if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND) {        
+                        //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
+                        //cout << "inserting" << retrieveDict(inputString.substr(frontBound,i)) <<"\n" << std::endl;
+                        string insertMe = retrieveDict(inputString.substr(frontBound,i));
+                        returnMe.insert(frontOffset,insertMe);
+                        frontOffset += insertMe.length();
+                        frontBound += i;
+                        // cout << "found front " << insertMe << endl;
+                        break;
+                    } else if (i + 1 > min(4,(int)inputString.length()/2)) {
+                        // in case there are no matches possible, move up front in order to continue execution
+                        returnMe.insert(frontOffset,inputString.substr(frontBound,i));
+                        frontOffset += 1;
+                        frontBound += 1;
+                    }
+                //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
+
+                //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
+                    if(frontBound >= endBound){
+                        break;
+                    }
+                } //might want to break up for loops to ensure that 1 is not stall waiting for other if already found
+
             }
         }
-        //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
-
-        //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
-        if(frontBound >= endBound){
-            break;
-        }
-        } //might want to break up for loops to ensure that 1 is not stall waiting for other if already found
-
+       
     }
 
     return returnMe;
 
 }
-/*
-string parallelHenkan(string inputString){
-    for(size_t chunk = 3; chunk >= 0; chunk--){
+
+string edgeHenkanParallel(string inputString){
+    int frontBound, endBound, frontOffset, backOffset;
+    frontBound = 0; endBound = inputString.length(); //pointers for input string
+    string returnMe = "";
+    frontOffset = 0; backOffset = 0; //pointers for output string
+    if(inputString.size() < GRANULARITY_BOUND){
+        //granularity bound
+        return naiveHenkan(inputString);
+    }
+    while(frontBound < endBound){
         #pragma omp parallel
         {
-            for(int i = 0 ; i < (inputString.size() / chunk) ; i += chunk){
-                if(romajiHiraganaMap.find(inputString.substr(i,chunk)) != romajiHiraganaMap.end()) {
-                
+        #pragma omp task
+        for (int w = 0; w < 2; w++) {
+            if (w == 0) {
+                int j = min(4,endBound-frontBound);
+                while (j > 0) {
+                    if(frontBound >= endBound){
+                        break;
+                    }
+                    if(inDict(inputString.substr(endBound-j,j)) != NOT_FOUND) {
+                        //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl; 
+                        //cout << "inserting" << insertMe <<"\n" << std::endl;
+                        //cout << "string: " <<returnMe << "int: " << (returnMe.length()-backOffset) << std::endl;
+                        string insertMe = retrieveDict(inputString.substr(endBound-j,j));
+                        returnMe.insert(returnMe.length()-backOffset,insertMe);
+                        backOffset += insertMe.length(); 
+                        endBound -= j;
+                        // cout << "found back " << insertMe << endl;
+                        break;
+                    }
+                    j--;
                 }
-            } 
+            } else {
+                for(int i = 1; i <= min(4,(int)inputString.length()/2); i++){ //4 is maxsize romaji in dict
+            //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
+                    if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND) {        
+                        //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
+                        //cout << "inserting" << retrieveDict(inputString.substr(frontBound,i)) <<"\n" << std::endl;
+                        string insertMe = retrieveDict(inputString.substr(frontBound,i));
+                        returnMe.insert(frontOffset,insertMe);
+                        frontOffset += insertMe.length();
+                        frontBound += i;
+                        // cout << "found front " << insertMe << endl;
+                        break;
+                    } else if (i + 1 > min(4,(int)inputString.length()/2)) {
+                        // in case there are no matches possible, move up front in order to continue execution
+                        returnMe.insert(frontOffset,inputString.substr(frontBound,i));
+                        frontOffset += 1;
+                        frontBound += 1;
+                    }
+                //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
+
+                //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
+                    if(frontBound >= endBound){
+                        break;
+                    }
+                } //might want to break up for loops to ensure that 1 is not stall waiting for other if already found
+
+            }
+            // int thread_num = omp_get_thread_num();
+            // std::cout << thread_num  << std::endl;
         }
+        }
+       
     }
-    return "\n";
-    //pragma omp omp
-}*/
+
+    return returnMe;
+
+}
 void dut(string inputString){
+    string naiveInput = inputString;
+    naiveInput.erase(remove(naiveInput.begin(), naiveInput.end(), ' '), naiveInput.end());
     Timer naiveSimulationTimer;
-    string naiveOutput = edgeHenkan(inputString);
+    string naiveOutput = sequentialEdgeHenkan(inputString);
     double naiveTime = naiveSimulationTimer.elapsed();
     Timer edgeSimulationTimer;
     string edgeOutput = parallelEdgeHenkan(inputString);
@@ -257,13 +364,12 @@ void dut(string inputString){
     //insert timing code
     naiveOutput.erase(remove(naiveOutput.begin(), naiveOutput.end(), ' '), naiveOutput.end());
     edgeOutput.erase(remove(edgeOutput.begin(), edgeOutput.end(), ' '), edgeOutput.end());
-    cout << "naiveHenkan: " << naiveOutput << std::endl;
-    //cout << "parallelHenkan: " << parallelOutput << std::endl;
-    cout << "edgeHenkan: " << edgeOutput << std::endl;
     if(naiveOutput == edgeOutput){
         cout << "\033[37;32mOUTPUTS MATCH!" << std::endl;
     }else{
         cout << "\033[37;31mOUTPUTS DO NOT MATCH :(" << std::endl;
+        cout << "naiveHenkan: " << naiveOutput << std::endl;
+        cout << "edgeHenkan: " << edgeOutput << std::endl;
     }
 }
 
