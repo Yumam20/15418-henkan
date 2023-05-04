@@ -114,39 +114,41 @@ string naiveHenkan(string inputString){
 }
 
 string edgeHenkan(string inputString){
-    //int middle = inputString.size() / 2;
-    int frontBound, endBound;
-    frontBound = 0; endBound = inputString.size();
+    int frontBound, endBound, frontOffset, backOffset;
+    frontBound = 0; endBound = inputString.length(); //pointers for input string
     string returnMe = "";
-    int frontInsertPosition = 0; 
-    int backInsertPosition = 0;
+    frontOffset = 0; backOffset = 0; //pointers for output string
 
     while(frontBound < endBound){
         for(int i = 3; i > 0; i--){ //3 is maxsize romaji in dict
             //cout << "trying frontBound" << inputString.substr(frontBound,i) << std::endl;
-            if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND){
+            if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND){        
                 //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
                 //cout << "inserting" << retrieveDict(inputString.substr(frontBound,i)) <<"\n" << std::endl;
-                returnMe.insert(frontInsertPosition,retrieveDict(inputString.substr(frontBound,i)));
-                frontInsertPosition += retrieveDict(inputString.substr(frontBound,i)).size();
-                backInsertPosition = max(backInsertPosition, frontInsertPosition);
+                string insertMe = retrieveDict(inputString.substr(frontBound,i));
+                returnMe.insert(frontOffset,insertMe);
+                frontOffset += insertMe.length();
                 frontBound += i;
             }
             //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
             if(inDict(inputString.substr(endBound-i,i)) != NOT_FOUND){
-                //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl;
-                //cout << "inserting" << retrieveDict(inputString.substr(endBound-i,i)) <<"\n" << std::endl;
-                returnMe += retrieveDict(inputString.substr(endBound-i,i));
-                backInsertPosition -= retrieveDict(inputString.substr(endBound-i,i)).size();
-                backInsertPosition = min(backInsertPosition, frontInsertPosition);
+                //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl; 
+                //cout << "inserting" << insertMe <<"\n" << std::endl;
+                //cout << "string: " <<returnMe << "int: " << (returnMe.length()-backOffset) << std::endl;
+                string insertMe = retrieveDict(inputString.substr(endBound-i,i));
+                returnMe.insert(returnMe.length()-backOffset,insertMe);
+                backOffset += insertMe.length(); 
                 endBound -= i;
             }
+            //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
+            //returnMe.insert(1,"ロル");
             if(frontBound >= endBound){
                 return returnMe;
             }
         } //might want to break up for loops to ensure that 1 is not stall waiting for other if already found
 
     }
+
     return returnMe;
 
 }
@@ -187,7 +189,6 @@ int main() {
     getline(cin, inputString);
     boost::algorithm::to_lower(inputString);
     read_hira();
-
     dut(inputString);
 
     return 0;
