@@ -318,6 +318,7 @@ inline string edgeHenkan(string inputString){
                 }   
             }      
         }
+    }
     return returnMe;
 }
 /// @brief edgeHenkan implementation with two-thread OpenMP parallelism
@@ -434,8 +435,8 @@ void dut(string inputString, bool verbose){
     
     // print out outputs of conversion
     if (verbose) {
-        cout << "naiveHenkan: " << naiveOutput << std::endl;
-        cout << "edgeHenkan: " << seqOutput << std::endl;
+        //cout << "naiveHenkan: " << naiveOutput << std::endl;
+        //cout << "edgeHenkan: " << seqOutput << std::endl;
         cout << "edgeHenkanNoParallel: " << edgeNoEdgeParallelOutput << std::endl;
     }
     
