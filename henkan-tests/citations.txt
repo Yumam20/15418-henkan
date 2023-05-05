@@ -1,0 +1,24 @@
+Test Case
+Source
+basic.txt
+Japanese Characters [1]
+
+eigo-wakarimasen.txt
+MIYACHI - Eigo Wakarimasen [2]
+
+newsarticle-772.txt
+クレムリン無人機 ロシア “米指示しウクライナが攻撃”と主張 [3]
+
+newsarticle-2500.txt
+クレムリン無人機 ロシア “米指示しウクライナが攻撃”と主張 [3]
+
+longarticle-135176.txt
+AIリスクにどう向き合う？ [4]
+
+really-long-article-54000.txt
+AIリスクにどう向き合う？ [4]
+
+[1] Japanese-Lesson.com. "Hiragana Chart." Japanese-Lesson.com, https://japanese-lesson.com/characters/hiragana/index.html.
+[2] Youtube. “Eigo Wakarimasen” MIYACHI, 15 March 2018, https://www.youtube.com/watch?v=yEo87oaQXZY
+[3] NHK. "クレムリン無人機 ロシア “米指示しウクライナが攻撃”と主張" NHK, 1 May 2023, https://www3.nhk.or.jp/news/html/20230505/k10014057861000.html
+[4] NHK. "AIリスクにどう向き合う" NHK, 1 May 2023, https://www3.nhk.or.jp/news/html/20230501/k10014054961000.html 
