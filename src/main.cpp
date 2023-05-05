@@ -46,7 +46,7 @@ void read_hira() {
     string romaji;
     string hiragana;
     ifstream file;
-    
+
     file.open("hiraganaMap.csv");
 
     if (!file.is_open())
@@ -54,24 +54,16 @@ void read_hira() {
         cout << "path is wrong for map" << endl;
         return;
     }
+
+    // read in lines
     while(getline(file,line)){
         istringstream str(line);
-        //cout << line << endl;
+
         getline(str,word,',');//int
         getline(str,romaji,',');//romaji
-        //cout << "word " << romaji << endl;
         getline(str,hiragana,',');//romaji
-        //cout << "word " << hiragana << endl;
         romajiHiraganaMap[romaji] = hiragana;
     }
-
-    // Iterate through the map and print the elements
-    std::map<std::string, std::string>::iterator it;
-    for (it = romajiHiraganaMap.begin(); it != romajiHiraganaMap.end(); ++it);
-    {
-        //cout << "Key: " << it->first << ", Value: " << it->second << std::endl;
-    }
-    cout << endl;
 }
 
 string romajiExceptions(string queryString){
