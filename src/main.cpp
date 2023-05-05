@@ -173,7 +173,7 @@ string paralleHenkanEdgeParallelism(string inputString) {
     return final_henkan;
 }
 
-string parallelEdgeHenkanNoParallel(string inputString) {
+string parallelEdgeHenkanV2(string inputString) {
     vector<string> henkan_list;
     string final_henkan;
     istringstream ss(inputString);
@@ -212,7 +212,7 @@ string parallelEdgeHenkanNoParallel(string inputString) {
     return final_henkan;
 }
 
-string parallelEdgeHenkan(string inputString) {
+string parallelEdgeHenkanV1(string inputString) {
     vector<string> henkan_list;
     string final_henkan;
     istringstream ss(inputString);
@@ -331,82 +331,75 @@ string edgeHenkanParallel(string inputString){
         return naiveHenkan(inputString);
     }
 
-        //#pragma omp parallel
-        #pragma omp parallel num_threads(2)
-        #pragma omp sections
-        {
+    //#pragma omp parallel
+    #pragma omp parallel num_threads(2)
+    #pragma omp sections
+    {
 
-        #pragma omp section
-        {
-            while(frontBound < endBound){
-                for(int i = min(4,(int)inputString.length()/2); i > 0; i--){ //4 is maxsize romaji in dict
-                        // cout << "trying frontBound" << inputString.substr(frontBound,i) << " " << frontBound << " " << i << " " << omp_get_thread_num() << std::endl;
-                        #pragma omp atomic read seq_cst
-                        endBound = sharedEndBound;
-                        if(frontBound >= endBound){
-                            break;
-                        }
-                        if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND) {        
-                            //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
-                            //cout << "inserting" << retrieveDict(inputString.substr(frontBound,i)) <<"\n" << std::endl;
-                            string insertMe = retrieveDict(inputString.substr(frontBound,i));
-                            left += insertMe;
-                            frontOffset += insertMe.length();
-                            frontBound += i;
-                            #pragma omp atomic write seq_cst
-                            sharedFrontBound = frontBound;
-                            // cout << "found front " << insertMe << endl;
-                            break;
-                        } else if (i == 1) {
-                            // in case there are no matches possible, move up front in order to continue execution
-                            left += inputString.substr(frontBound,i);
-                            frontOffset += 1;
-                            frontBound += 1;
-                        }
-                    //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
-
-                    //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
-
-                }
-            }
-        }
-        #pragma omp section
-        {
-            while(frontBound < endBound){
-                // std::cout << " hi " << omp_get_num_threads() << endl;
-                int j = min(4,endBound-frontBound);
-                while (j > 0) {
+    #pragma omp section
+    {
+        while(frontBound < endBound){
+            for(int i = min(4,(int)inputString.length()/2); i > 0; i--){ //4 is maxsize romaji in dict
+                    // cout << "trying frontBound" << inputString.substr(frontBound,i) << " " << frontBound << " " << i << " " << omp_get_thread_num() << std::endl;
                     #pragma omp atomic read seq_cst
-                    frontBound = sharedFrontBound;
-                    if(frontBound + 4 >= endBound){
+                    endBound = sharedEndBound;
+                    if(frontBound >= endBound){
                         break;
                     }
-                    if(inDict(inputString.substr(endBound-j,j)) != NOT_FOUND) {
-                       
-                        //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl; 
-                        //cout << "inserting" << insertMe <<"\n" << std::endl;
-                        //cout << "string: " <<returnMe << "int: " << (returnMe.length()-backOffset) << std::endl;
-                        string insertMe = retrieveDict(inputString.substr(endBound-j,j));
-                        right.insert(0,insertMe);
-                        backOffset += insertMe.length(); 
-                        endBound -= j;
+                    if(inDict(inputString.substr(frontBound,i)) != NOT_FOUND) {        
+                        //cout << "found frontBound" << inputString.substr(frontBound,i) << std::endl;
+                        //cout << "inserting" << retrieveDict(inputString.substr(frontBound,i)) <<"\n" << std::endl;
+                        string insertMe = retrieveDict(inputString.substr(frontBound,i));
+                        left += insertMe;
+                        frontOffset += insertMe.length();
+                        frontBound += i;
                         #pragma omp atomic write seq_cst
-                        sharedEndBound = endBound;
-                        // cout << "found back " << insertMe << endl;
+                        sharedFrontBound = frontBound;
+                        // cout << "found front " << insertMe << endl;
                         break;
+                    } else if (i == 1) {
+                        // in case there are no matches possible, move up front in order to continue execution
+                        left += inputString.substr(frontBound,i);
+                        frontOffset += 1;
+                        frontBound += 1;
                     }
-                    j--;
-                }
+                //cout << "trying endBound " << inputString.substr(endBound-i,i) << std::endl;
+
+                //cout << "string = " << returnMe << "length = " << returnMe.length() << std::endl;
+
             }
         }
+    }
+    #pragma omp section
+    {
+        while(frontBound < endBound){
+            // std::cout << " hi " << omp_get_num_threads() << endl;
+            int j = min(4,endBound-frontBound);
+            while (j > 0) {
+                #pragma omp atomic read seq_cst
+                frontBound = sharedFrontBound;
+                if(frontBound + 4 >= endBound){
+                    break;
+                }
+                if(inDict(inputString.substr(endBound-j,j)) != NOT_FOUND) {
+                    
+                    //cout << "found endBound " << inputString.substr(endBound-i,i) << std::endl; 
+                    //cout << "inserting" << insertMe <<"\n" << std::endl;
+                    //cout << "string: " <<returnMe << "int: " << (returnMe.length()-backOffset) << std::endl;
+                    string insertMe = retrieveDict(inputString.substr(endBound-j,j));
+                    right.insert(0,insertMe);
+                    backOffset += insertMe.length(); 
+                    endBound -= j;
+                    #pragma omp atomic write seq_cst
+                    sharedEndBound = endBound;
+                    // cout << "found back " << insertMe << endl;
+                    break;
+                }
+                j--;
+            }
         }
-        
-
- //might want to break up for loops to ensure that 1 is not stall waiting for other if already found
-
-
-            // int thread_num = omp_get_thread_num();
-            // std::cout << thread_num  << std::endl;
+    }
+    }
 
     return left + right;
 
@@ -424,39 +417,41 @@ void dut(string inputString, bool verbose){
     double seqTime = seqSimulationTimer.elapsed();
 
     Timer edgeSimulationTimer;
-    string edgeOutput = parallelEdgeHenkan(inputString);
+    string edgeOutput = parallelEdgeHenkanV1(inputString);
     double edgeSimulationTime = edgeSimulationTimer.elapsed();
 
     Timer edgeSimNoEdgeParallelTimer;
-    string edgeNoEdgeParallelOutput = parallelEdgeHenkanNoParallel(inputString);
+    string edgeNoEdgeParallelOutput = parallelEdgeHenkanV2(inputString);
     double edgeSimNoEdgeParallelTime = edgeSimNoEdgeParallelTimer.elapsed();
 
     naiveOutput.erase(remove(naiveOutput.begin(), naiveOutput.end(), ' '), naiveOutput.end());
     edgeOutput.erase(remove(edgeOutput.begin(), edgeOutput.end(), ' '), edgeOutput.end());
     edgeNoEdgeParallelOutput.erase(remove(edgeNoEdgeParallelOutput.begin(), edgeNoEdgeParallelOutput.end(), ' '), edgeNoEdgeParallelOutput.end());
     
-    // if (verbose == true) {
-    //     cout << "naiveHenkan: " << naiveOutput << std::endl;
-    //     cout << "edgeHenkan: " << edgeOutput << std::endl;
-    //     cout << "edgeHenkanNoParallel: " << edgeNoEdgeParallelOutput << std::endl;
-    // }
+    // print out outputs of conversion
+    if (verbose) {
+        cout << "naiveHenkan: " << naiveOutput << std::endl;
+        cout << "edgeHenkan: " << seqOutput << std::endl;
+        cout << "edgeHenkanNoParallel: " << edgeNoEdgeParallelOutput << std::endl;
+    }
     
+    // print results of timing
     printf("naive henkan simulation time: %.6fs\n", naiveTime);
-    printf("sequential edgehenkan simulation time: %.6fs\n", seqTime);
-    printf("parallel edgeHenkan simulation time: %.6fs\n", edgeSimulationTime);
+    printf("parallelEdgeHenkanV1 simulation time: %.6fs\n", seqTime);
+    printf("parallelEdgeHenkanV2 simulation time: %.6fs\n", edgeSimulationTime);
 
-    if (verbose == true) {
+    if (verbose) {
         printf("parallel edgeHenkan noParallelEdge simulation time: %.6fs\n", edgeSimNoEdgeParallelTime);
     }
     printf("Speedup of sequential edgeHenkan vs. parallelEdgeHenkan over words: %f\n", (seqTime/(edgeSimulationTime)));
     printf("Speedup of naive edgeHenkan vs. parallelEdgeHenkan over words: %f\n", (naiveTime/(edgeSimulationTime)));
-    if (verbose == true) {
+    if (verbose) {
         printf("parallel over words, no per-word, over sequential speedup:  %f\n", (seqTime/edgeSimNoEdgeParallelTime));
         printf("parallel over words, no per-word, over naive speedup:  %f\n", (naiveTime/edgeSimNoEdgeParallelTime));
     }
-    //insert timing code
 
-    if(1==1){
+    // verify correctness of results
+    if(seqOutput == edgeNoEdgeParallelOutput){
         cout << "\033[37;32mOUTPUTS MATCH!" << std::endl;
     }else{
         cout << "\033[37;31mOUTPUTS DO NOT MATCH :(" << std::endl;
