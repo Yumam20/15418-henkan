@@ -326,6 +326,7 @@ string edgeHenkanParallel(string inputString){
     string left;
     string right;
     frontOffset = 0; backOffset = 0; //pointers for output string
+
     if(inputString.size() < GRANULARITY_BOUND){
         //granularity bound
         return naiveHenkan(inputString);
@@ -416,8 +417,12 @@ void dut(string inputString, bool verbose){
     naiveInput.erase(remove(naiveInput.begin(), naiveInput.end(), ' '), naiveInput.end());
 
     Timer naiveSimulationTimer;
-    string naiveOutput = sequentialEdgeHenkan(naiveInput);
+    string naiveOutput = naiveHenkan(naiveInput);
     double naiveTime = naiveSimulationTimer.elapsed();
+
+    Timer seqSimulationTimer;
+    string seqOutput = sequentialEdgeHenkan(naiveInput);
+    double seqTime = seqSimulationTimer.elapsed();
 
     Timer edgeSimulationTimer;
     string edgeOutput = parallelEdgeHenkan(inputString);
@@ -436,14 +441,19 @@ void dut(string inputString, bool verbose){
         cout << "edgeHenkan: " << edgeOutput << std::endl;
         cout << "edgeHenkanNoParallel: " << edgeNoEdgeParallelOutput << std::endl;
     }
-    printf("sequential edgehenkan simulation time: %.6fs\n", naiveTime);
+    
+    printf("naive henkan simulation time: %.6fs\n", naiveTime);
+    printf("sequential edgehenkan simulation time: %.6fs\n", seqTime);
     printf("parallel edgeHenkan simulation time: %.6fs\n", edgeSimulationTime);
+
     if (verbose == true) {
         printf("parallel edgeHenkan noParallelEdge simulation time: %.6fs\n", edgeSimNoEdgeParallelTime);
     }
-    printf("Speedup: %f\n", (naiveTime/(edgeSimulationTime)));
+    printf("Speedup of sequential edgeHenkan vs. parallelEdgeHenkan over words: %f\n", (seqTime/(edgeSimulationTime)));
+    printf("Speedup of naive edgeHenkan vs. parallelEdgeHenkan over words: %f\n", (naiveTime/(edgeSimulationTime)));
     if (verbose == true) {
-        printf("parallel edgeHenkan noParallelEdge over sequential speedup:  %f\n", (naiveTime/edgeSimNoEdgeParallelTime));
+        printf("parallel over words, no per-word, over sequential speedup:  %f\n", (seqTime/edgeSimNoEdgeParallelTime));
+        printf("parallel over words, no per-word, over naive speedup:  %f\n", (naiveTime/edgeSimNoEdgeParallelTime));
     }
     //insert timing code
 

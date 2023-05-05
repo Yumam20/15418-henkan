@@ -1,3 +1,5 @@
+//Source: 15418 Assignment 4 Source Files
+//Used for timing the sequential and parallel implementations of the code.
 #ifndef TIMING_H
 #define TIMING_H
 
