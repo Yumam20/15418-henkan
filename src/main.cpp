@@ -15,12 +15,12 @@
 using namespace std;
 
 int GRANULARITY_BOUND = 4;
+int LOAD_BALANCE = 200;
 
 std::map<std::string, std::string> romajiHiraganaMap;
 enum dictStatus {FOUND_DICT, FOUND_EXCEPTION, NOT_FOUND};
 string edgeHenkan(string inputString);
 string edgeHenkanParallel(string inputString);
-string edgeHenkanLeft(string inputString);
 
 // helper function to read input file and return as string
 string read_input_file(string inputSrc) {
@@ -38,15 +38,17 @@ string read_input_file(string inputSrc) {
    return file_string;
 }
 
-
+// helper function to read in hiragana mappings
+// from spreadsheet
 void read_hira() {
     string line;
     string word;
     string romaji;
     string hiragana;
     ifstream file;
+    
     file.open("hiraganaMap.csv");
-    //cout << "hello?" << endl;
+
     if (!file.is_open())
     {
         cout << "path is wrong for map" << endl;
@@ -138,8 +140,6 @@ string naiveHenkan(string inputString){
     }
     return inputString;
 }
-
-int LOAD_BALANCE = 100;
 
 string sequentialEdgeHenkan(string inputString) {
     vector<string> henkan_list;
