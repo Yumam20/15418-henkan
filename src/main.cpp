@@ -195,12 +195,11 @@ string parallelEdgeHenkanNoParallel(string inputString) {
     }
     vector<string> henkan_out = vector<string>(henkan_list.size());
     if (henkan_list.size() >= 2) {
-         #pragma omp parallel
+         #pragma omp parallel num_threads(8)
         {
             #pragma omp for schedule(static)
             for (int i = 0; i < henkan_list.size(); i++) {
-                int thread_num = omp_get_thread_num();
-                // std::cout << thread_num << henkan_list[i] << std::endl;
+                int thread_num = omp_get_num_threads();
                 henkan_out[i] = edgeHenkan(henkan_list[i]);
             }
         }
@@ -253,7 +252,7 @@ string parallelEdgeHenkan(string inputString) {
     return final_henkan;
 }
 
-string edgeHenkan(string inputString){
+inline string edgeHenkan(string inputString){
     int frontBound, endBound, frontOffset, backOffset;
     frontBound = 0; endBound = inputString.length(); //pointers for input string
     string returnMe = "";
